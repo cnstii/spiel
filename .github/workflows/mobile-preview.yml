@@ -45,7 +45,7 @@ jobs:
 
       - name: Build iOS simulator preview
         run: >-
-          xcodebuild -project ios/App/App.xcodeproj -scheme App
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App
           -destination 'generic/platform=iOS Simulator'
           -derivedDataPath build/ios-simulator
           CODE_SIGNING_ALLOWED=NO build
