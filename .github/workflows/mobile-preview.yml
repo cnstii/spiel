@@ -1,0 +1,61 @@
+name: Build mobile previews
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create local web bundle
+        run: npm run mobile:prepare
+
+      - name: Add native platforms
+        run: |
+          npx cap add android
+          npx cap add ios
+          npx cap sync
+
+      - name: Build Android preview
+        run: android/gradlew -p android assembleDebug
+
+      - name: Upload Android preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: blockspiel-android-preview
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Build iOS simulator preview
+        run: >-
+          xcodebuild -project ios/App/App.xcodeproj -scheme App
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/ios-simulator
+          CODE_SIGNING_ALLOWED=NO build
+
+      - name: Package iOS simulator preview
+        run: ditto -c -k --sequesterRsrc --keepParent build/ios-simulator/Build/Products/Debug-iphonesimulator/App.app build/blockspiel-ios-simulator.zip
+
+      - name: Upload iOS simulator preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: blockspiel-ios-simulator-preview
+          path: build/blockspiel-ios-simulator.zip
+          if-no-files-found: error
